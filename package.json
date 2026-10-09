@@ -6,15 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "vite build && gh-pages -d dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
-    "gpxparser": "^3.0.8",
     "leaflet": "^1.9.4",
     "vue": "^3.5.42"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "autoprefixer": "^10.6.1",
     "gh-pages": "^6.3.0",

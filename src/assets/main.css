@@ -1,35 +1,47 @@
-@import './base.css';
+@import "tailwindcss";
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+@theme {
+  --color-ink-950: #0e1f26;
+  --color-ink-800: #17272e;
+  --color-teal-400: #0e9bb3;
+  --color-teal-600: #0a6a7d;
+  --color-page: #eef2f3;
+  --color-surface: #ffffff;
+  --color-line: #d7dee0;
+  --color-text-1: #16252b;
+  --color-text-2: #5b6b70;
+  --color-dark-1: #f2f6f7;
+  --color-dark-2: #9fb0b6;
+
+  --font-sans: "Barlow", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-num: "Barlow Semi Condensed", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
+body {
+  background: var(--color-page);
+  color: var(--color-text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+label {
+  user-select: none;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+:focus-visible {
+  outline: 2px solid var(--color-teal-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    transition: none !important;
+    animation: none !important;
   }
 }
