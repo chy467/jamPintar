@@ -91,7 +91,7 @@ const onStripUp = (e) => {
   startX = null
   if (Math.abs(dx) < 40) return
   swiping = true
-  if (dx > 0) goNewer(); else goOlder()
+  if (dx > 0) goOlder(); else goNewer()
 }
 
 const visibleTracks = computed(() => {
@@ -154,10 +154,9 @@ const badgesOf = (t) => badgesForTrack(props.tracks, t.id)
         <div class="mt-3 flex items-center gap-1">
           <button
             type="button"
-            aria-label="Maju ke tanggal yang lebih baru"
-            :disabled="stripOffset === 0"
-            class="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg text-text-2 transition hover:bg-page hover:text-text-1 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
-            @click="goNewer"
+            aria-label="Lihat tanggal sebelumnya"
+            class="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg text-text-2 transition hover:bg-page hover:text-text-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+            @click="goOlder"
           >
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
           </button>
@@ -182,9 +181,11 @@ const badgesOf = (t) => badgesForTrack(props.tracks, t.id)
                     'day-ring font-num flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition',
                     isFocus(d)
                       ? 'is-selected border-teal-600 bg-teal-600 text-white'
-                      : d.km
-                        ? 'border-teal-400/70 text-teal-600'
-                        : 'border-line text-text-2',
+                      : d.today
+                        ? 'border-teal-400 bg-teal-400/30 text-ink-950'
+                        : d.km
+                          ? 'border-teal-400/70 text-teal-600'
+                          : 'border-line text-text-2',
                   ]"
                 >{{ d.num }}</span>
                 <span :class="['text-[11px]', d.today ? 'font-bold text-teal-600' : 'text-text-2']">{{ d.label }}</span>
@@ -193,9 +194,10 @@ const badgesOf = (t) => badgesForTrack(props.tracks, t.id)
           </div>
           <button
             type="button"
-            aria-label="Mundur ke tanggal yang lebih lampau"
-            class="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg text-text-2 transition hover:bg-page hover:text-text-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
-            @click="goOlder"
+            aria-label="Lihat tanggal selanjutnya"
+            :disabled="stripOffset === 0"
+            class="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg text-text-2 transition hover:bg-page hover:text-text-1 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+            @click="goNewer"
           >
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
           </button>
