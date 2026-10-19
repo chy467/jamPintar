@@ -136,6 +136,30 @@ Sebelum dan sesudah Anda melakukan perubahan pada proyek ini, lakukan langkah-la
    - [ ] Jalankan `npm run build` untuk memastikan tidak ada error kompilasi atau kesalahan impor sebelum menyelesaikan sesi.
    - [ ] Pastikan tidak ada fungsi atau komponen yang rusak akibat refactoring.
 
+## 5. ALUR KERJA GIT & PUBLISH (WAJIB SETIAP PERUBAHAN)
+
+Setiap kali selesai membuat perubahan, ikuti urutan ini tanpa terkecuali:
+
+1. **Tambahkan semua perubahan ke staging**:
+   ```sh
+   git add .
+   ```
+2. **Commit dengan pesan yang jelas dan singkat** (Bahasa Indonesia atau Inggris, konsisten):
+   ```sh
+   git commit -m "Deskripsi perubahan"
+   ```
+3. **Push ke GitHub (branch `main`)**:
+   ```sh
+   git push
+   ```
+4. **Publikasikan ke GitHub Pages**:
+   ```sh
+   npm run deploy
+   ```
+   Skrip ini menjalankan `vite build` lalu `gh-pages -d dist`, dan harus berakhir dengan status `Published`.
+
+Jangan menunggu instruksi tambahan dari pengguna untuk langkah `git add` dan publish; ini bagian standar dari penyelesaian tugas. Jika pengguna secara eksplisit meminta untuk tidak commit atau tidak publish, instruksi pengguna yang berlaku.
+
 ---
 
 *Dokumen ini diperbarui secara berkala sebagai panduan resmi pengembangan JamPintar oleh Agent AI.*
