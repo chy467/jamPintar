@@ -23,6 +23,8 @@ Banyak pelari yang merekam data lari menggunakan jam tangan pintar (Garmin, Coro
    - **Estimasi VO2max**: Kalkulasi berbasis performa ACSM atau detak jantung Uth, dilengkapi kategori kebugaran Institut Cooper.
    - **Prediksi Waktu Balapan**: Formula Riegel untuk memprediksi potensi waktu tempuh 5K - 42.2K berdasarkan rekor terbaru.
    - **Profil Atlet & Keamanan**: Manajemen data profil (umur, berat, tinggi, gender, HR maks) dan autentikasi akun via Supabase Auth.
+   - **Recovery Time (Metode Karvonen)**: Estimasi jam waktu istirahat pemulihan berbasis denyut cadangan jantung (HRR) + 5 jam batas aman.
+   - **Stiker Aktivitas (Share Story/Post)**: Pembuat stiker rekap lari bergaya Strava/NRC dengan foto latar pribadi, rute peta GPS, split km, dan template layout yang modular (dapat ditambah template baru dengan mudah).
 
 ---
 
@@ -53,14 +55,15 @@ my-strava-dashboard/
 │   │   ├── TrackMap.vue    # Komponen Peta Leaflet + Slider Replay
 │   │   ├── RecordsView.vue # Rekor Pribadi (PB), VO2max, & Prediksi Waktu Lari
 │   │   ├── ProfileView.vue # Form Profil Atlet & Pengaturan Keamanan Akun
+│   │   ├── ShareStickerModal.vue # Modal Buat Stiker Share (Story & Post)
 │   │   └── ToastHost.vue   # Host Notifikasi Toast
 │   ├── lib/
 │   │   ├── gpx.js          # Parser GPX, hitung distance/pace/elevation/split/HR
-│   │   ├── performance.js  # Algoritma PB, VO2max (ACSM & Uth), Riegel Predictor
+│   │   ├── performance.js  # Algoritma PB, VO2max (ACSM & Uth), Riegel, & Karvonen
 │   │   ├── format.js       # Formatter durasi, pace, tanggal (Bahasa Indonesia)
+│   │   ├── stickerCanvas.js# Registry template & render stiker foto via Canvas
 │   │   ├── supabaseClient.js# Inisialisasi Supabase SDK
-│   │   ├── toast.js        # Event bus untuk notifikasi toast
-│   │   └── performance.js  # Logika pembantu performa
+│   │   └── toast.js        # Event bus untuk notifikasi toast
 │   ├── App.vue             # Central Orchestrator & State Management
 │   └── main.js             # Entry point Vue 3
 ├── supabase/

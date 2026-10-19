@@ -5,6 +5,7 @@ import TrackMap from './TrackMap.vue'
 import { fmtDur, fmtPace, fmtDate } from '../lib/format'
 import { splitsOf, zoneDuration, findIdx } from '../lib/gpx'
 import { newPRsForTrack, PR_DISTANCES, vo2Performance, karvonenRecoveryTime } from '../lib/performance'
+import ShareStickerModal from './ShareStickerModal.vue'
 
 const props = defineProps({
   track: { type: Object, required: true },
@@ -31,6 +32,7 @@ const activeSplit = ref(null)
 const playing = ref(false)
 const speed = ref(2)
 const mapRef = ref(null)
+const showShareModal = ref(false)
 
 let timer = null
 
@@ -207,6 +209,20 @@ onBeforeUnmount(stopPlay)
           <h1 class="font-num truncate text-xl font-semibold">{{ track.title }}</h1>
           <p class="text-xs text-text-2">{{ fmtDate(track.date, true) }}</p>
         </div>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-lg border border-teal-600/30 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-600 transition hover:bg-teal-100/70"
+          @click="showShareModal = true"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+          <span class="hidden sm:inline">Stiker</span>
+        </button>
         <button type="button" class="rounded-lg px-3 py-2 text-xs font-semibold text-[#a93226] transition hover:bg-[#fbeceb]" @click="$emit('delete', track)">Hapus</button>
       </div>
 
@@ -389,5 +405,12 @@ onBeforeUnmount(stopPlay)
       </section>
       <p v-if="!charts.length" class="py-10 text-center text-sm text-text-2">File GPX ini tidak punya data untuk grafik.</p>
     </div>
+
+    <!-- Modal Buat Stiker Share -->
+    <ShareStickerModal
+      v-if="showShareModal"
+      :track="track"
+      @close="showShareModal = false"
+    />
   </main>
 </template>
