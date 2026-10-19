@@ -4,11 +4,12 @@ import { supabase } from '../lib/supabaseClient'
 import TrackMap from './TrackMap.vue'
 import { fmtDur, fmtPace, fmtDate } from '../lib/format'
 import { splitsOf, zoneDuration, findIdx } from '../lib/gpx'
-import { newPRsForTrack, PR_DISTANCES, vo2Performance } from '../lib/performance'
+import { newPRsForTrack, PR_DISTANCES, vo2Performance, karvonenRecoveryTime } from '../lib/performance'
 
 const props = defineProps({
   track: { type: Object, required: true },
   tracks: { type: Array, default: () => [] },
+  profile: { type: Object, default: null },
 })
 const emit = defineEmits(['back', 'delete', 'settings'])
 
@@ -38,7 +39,7 @@ const splits = computed(() => splitsOf(props.track))
 const zones = computed(() => zoneDuration(props.track))
 const effMax = computed(() => props.track.hrMaxSet || props.track.maxHR)
 
-const hrForm = reactive({ restingHr: '', hrMaxSet: '' })
+const hrForm = reactive({ restingHr: '' })
 const hrSaving = ref(false)
 const hrError = ref('')
 const hrSaved = ref(false)
@@ -46,7 +47,6 @@ watch(
   () => props.track,
   (t) => {
     hrForm.restingHr = t?.restingHr || ''
-    hrForm.hrMaxSet = t?.hrMaxSet || ''
     hrError.value = ''
     hrSaved.value = false
   },
@@ -57,15 +57,13 @@ const saveHrSettings = async () => {
   hrError.value = ''
   hrSaved.value = false
   const restingHr = hrForm.restingHr ? Number(hrForm.restingHr) : null
-  const hrMaxSet = hrForm.hrMaxSet ? Number(hrForm.hrMaxSet) : null
-  if (restingHr != null && (restingHr < 30 || restingHr > 110)) return (hrError.value = 'HR istirahat umumnya antara 30 dan 110 bpm.')
-  if (hrMaxSet != null && (hrMaxSet < 120 || hrMaxSet > 230)) return (hrError.value = 'HR maks harus antara 120 dan 230 bpm.')
-  if (restingHr != null && hrMaxSet != null && restingHr >= hrMaxSet) return (hrError.value = 'HR istirahat harus lebih kecil dari HR maks.')
+  if (restingHr != null && (restingHr < 30 || restingHr > 110)) return (hrError.value = 'HR Istirahat (Rest Heart Rate / RHR) umumnya antara 30 dan 110 bpm.')
+  if (restingHr != null && props.track.maxHR != null && restingHr >= props.track.maxHR) return (hrError.value = 'HR Istirahat (Rest Heart Rate / RHR) harus lebih kecil dari HR maks.')
   hrSaving.value = true
   try {
-    const { error } = await supabase.from('tracks').update({ resting_hr: restingHr, hr_max_set: hrMaxSet }).eq('id', props.track.id)
+    const { error } = await supabase.from('tracks').update({ resting_hr: restingHr }).eq('id', props.track.id)
     if (error) throw new Error(error.message)
-    emit('settings', { restingHr, hrMaxSet })
+    emit('settings', { restingHr, hrMaxSet: props.track.hrMaxSet })
     hrSaved.value = true
   } catch (e) {
     hrError.value = e.message
@@ -78,6 +76,7 @@ const newPRs = computed(() => newPRsForTrack(props.tracks, props.track.id))
 
 const PR_LABELS = PR_DISTANCES.reduce((m, d) => { m[d.key] = d.label; return m }, {})
 const perf = computed(() => (props.track.duration >= 120 ? vo2Performance(props.track) : null))
+const recovery = computed(() => karvonenRecoveryTime(props.track, props.profile))
 
 const headline = computed(() => [
   { label: 'Jarak', value: (props.track.distance / 1000).toFixed(2), unit: 'km' },
@@ -109,7 +108,13 @@ const sections = computed(() => {
     } : null,
     t.avgHR ? { title: 'Detak jantung', rows: [['Rata-rata', t.avgHR, 'bpm'], ['Maksimum', t.maxHR, 'bpm']] } : null,
     t.avgCad ? { title: 'Dinamika lari', rows: [['Kadensi rata-rata', t.avgCad, 'spm']] } : null,
-    perf.value ? { title: 'Fisiologi', rows: [['Estimasi VO2max (segmen terbaik)', Math.round(perf.value), 'ml/kg/menit']] } : null,
+    perf.value || recovery.value ? {
+      title: 'Fisiologi & Pemulihan',
+      rows: [
+        perf.value ? ['Perkiraan VO2max (segmen terbaik)', Math.round(perf.value), 'ml/kg/menit'] : null,
+        recovery.value ? ['Perkiraan waktu pemulihan', recovery.value, 'jam'] : null,
+      ],
+    } : null,
   ]
   return out.filter(Boolean).map((s) => ({ ...s, rows: s.rows.filter(Boolean) }))
 })
@@ -294,23 +299,17 @@ onBeforeUnmount(stopPlay)
 
         <section class="rounded-xl border border-line bg-surface p-4">
           <h3 class="text-sm font-bold">Pengaturan detak jantung</h3>
-          <p class="mt-1 text-xs text-text-2">Dipakai untuk zona HR dan estimasi VO2max aktivitas ini. Kosongkan untuk memakai nilai dari data GPX.</p>
+          <p class="mt-1 text-xs text-text-2">Atur HR Istirahat (Rest Heart Rate / RHR) untuk estimasi VO2max. HR maks otomatis diambil dari data GPX.</p>
           <p v-if="hrSaved" role="status" class="mt-3 rounded-lg border border-teal-400/40 bg-teal-400/10 p-2.5 text-xs text-teal-600">Pengaturan tersimpan.</p>
           <p v-if="hrError" role="alert" class="mt-3 rounded-lg border border-[#e6b3ae] bg-[#fbeceb] p-2.5 text-xs text-[#a93226]">{{ hrError }}</p>
-          <form class="mt-3 grid grid-cols-2 gap-3" @submit.prevent="saveHrSettings">
+          <form class="mt-3 space-y-3" @submit.prevent="saveHrSettings">
             <label class="block">
-              <span class="text-xs font-semibold text-text-2">HR istirahat (bpm)</span>
+              <span class="text-xs font-semibold text-text-2">HR Istirahat (Rest Heart Rate / RHR) - bpm</span>
               <input :value="hrForm.restingHr" type="number" inputmode="numeric" min="30" max="110" placeholder="55"
                 class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3.5 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25"
                 @input="hrForm.restingHr = $event.target.value" />
             </label>
-            <label class="block">
-              <span class="text-xs font-semibold text-text-2">HR maks (bpm)</span>
-              <input :value="hrForm.hrMaxSet" type="number" inputmode="numeric" min="120" max="230" placeholder="192"
-                class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3.5 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25"
-                @input="hrForm.hrMaxSet = $event.target.value" />
-            </label>
-            <button type="submit" :disabled="hrSaving" class="col-span-2 rounded-lg bg-teal-600 py-2.5 text-sm font-bold text-white transition hover:bg-teal-600/90 disabled:opacity-50">
+            <button type="submit" :disabled="hrSaving" class="w-full rounded-lg bg-teal-600 py-2.5 text-sm font-bold text-white transition hover:bg-teal-600/90 disabled:opacity-50">
               {{ hrSaving ? 'Menyimpan...' : 'Simpan pengaturan' }}
             </button>
           </form>

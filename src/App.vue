@@ -270,6 +270,7 @@ onBeforeUnmount(() => authListener?.data?.subscription.unsubscribe())
       :key="selectedTrack.id"
       :track="selectedTrack"
       :tracks="tracks"
+      :profile="profile"
       @back="backFromActivity"
       @delete="confirmTrackDelete"
       @settings="applyTrackSettings"

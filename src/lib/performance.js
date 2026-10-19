@@ -180,7 +180,40 @@ export function cooperBand(vo2, gender, age) {
   return { idx, label: COOPER_LABELS_ID[idx], en: COOPER_BANDS[idx], thresholds }
 }
 
+export function karvonenRecoveryTime(track, profile = null) {
+  if (!track || !track.duration || !track.avgHR) return null
+
+  const restingHr = Number(track.restingHr) || Number(profile?.resting_hr) || 60
+  const maxHr =
+    Number(track.hrMaxSet) ||
+    Number(track.maxHR) ||
+    Number(profile?.max_hr) ||
+    (profile?.age ? 220 - Number(profile.age) : 190)
+
+  if (maxHr <= restingHr) return null
+
+  // Intensitas metode Karvonen berbasis Heart Rate Reserve (HRR)
+  // %HRR = (HRavg - HRrest) / (HRmax - HRrest)
+  const hrr = maxHr - restingHr
+  const intensity = Math.max(0.1, Math.min(1.0, (track.avgHR - restingHr) / hrr))
+
+  // Durasi dalam jam
+  const durationHours = track.duration / 3600
+
+  // Estimasi jam pemulihan dasar berdasarkan intensitas Karvonen & durasi
+  const baseRecovery = durationHours * intensity * 24
+
+  // Tambahan 5 jam untuk batas aman
+  const safetyBuffer = 5
+  const total = Math.round(baseRecovery + safetyBuffer)
+
+  return Math.min(Math.max(total, safetyBuffer), 96)
+}
+
+export const recoveryTime = karvonenRecoveryTime
+
 export function predictTimes(records) {
+  const hrsSince = (iso) => (Date.now() - Date.parse(iso)) / 3600000
   const eligible = records.filter((r) => r && r.meters >= 5000 && r.meters <= 21100 && r.time && hrsSince(r.date) < 24 * 180)
   let base = null
   for (const r of eligible) if (!base || r.pace < base.pace) base = r
