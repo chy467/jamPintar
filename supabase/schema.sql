@@ -10,12 +10,14 @@ create table if not exists public.profiles (
   height_cm numeric,
   gender text check (gender in ('male', 'female')),
   age int check (age between 5 and 110),
+  max_hr numeric,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.profiles add column if not exists weight_kg numeric;
 alter table public.profiles add column if not exists height_cm numeric;
+alter table public.profiles add column if not exists max_hr numeric;
 
 alter table public.profiles enable row level security;
 

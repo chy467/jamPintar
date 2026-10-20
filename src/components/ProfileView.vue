@@ -15,6 +15,7 @@ const form = reactive({
   gender: '',
   weight_kg: '',
   height_cm: '',
+  max_hr: '',
 })
 const errorMessage = ref('')
 const saved = ref(false)
@@ -27,6 +28,7 @@ watch(
     form.gender = p?.gender || ''
     form.weight_kg = p?.weight_kg || ''
     form.height_cm = p?.height_cm || ''
+    form.max_hr = p?.max_hr ?? ''
   },
   { immediate: true },
 )
@@ -41,10 +43,12 @@ const submit = () => {
     gender: form.gender || null,
     weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
     height_cm: form.height_cm ? Number(form.height_cm) : null,
+    max_hr: form.max_hr ? Number(form.max_hr) : null,
   }
   if (payload.age != null && (payload.age < 5 || payload.age > 110)) return (errorMessage.value = 'Umur harus antara 5 dan 110 tahun.')
   if (payload.weight_kg != null && (payload.weight_kg < 20 || payload.weight_kg > 300)) return (errorMessage.value = 'Berat badan harus antara 20 dan 300 kg.')
   if (payload.height_cm != null && (payload.height_cm < 50 || payload.height_cm > 250)) return (errorMessage.value = 'Tinggi badan harus antara 50 dan 250 cm.')
+  if (payload.max_hr != null && (payload.max_hr < 80 || payload.max_hr > 250)) return (errorMessage.value = 'HR Maks Personal harus antara 80 dan 250 bpm.')
   emit('save', payload)
   saved.value = true
 }
@@ -96,7 +100,7 @@ const updatePassword = async () => {
   <main class="mx-auto w-full max-w-md space-y-4 px-4 pb-32 pt-4">
     <section class="rounded-xl border border-line bg-surface p-5">
       <h1 class="font-num text-xl font-semibold">Profil atlet</h1>
-      <p class="mt-1 text-xs text-text-2">Umur, jenis kelamin, berat, dan tinggi dipakai nanti untuk perhitungan lanjutan seperti estimasi VO2max dan pembakaran kalori.</p>
+      <p class="mt-1 text-xs text-text-2">Umur, jenis kelamin, berat, tinggi, dan HR Maks Personal dipakai untuk perhitungan lanjutan seperti estimasi VO2max, pembakaran kalori, dan zona detak jantung.</p>
 
       <p v-if="saved" role="status" class="mt-4 rounded-lg border border-teal-400/40 bg-teal-400/10 p-3 text-sm text-teal-600">Profil tersimpan.</p>
       <p v-if="errorMessage" role="alert" class="mt-4 rounded-lg border border-[#e6b3ae] bg-[#fbeceb] p-3 text-sm text-[#a93226]">{{ errorMessage }}</p>
@@ -132,6 +136,12 @@ const updatePassword = async () => {
             <input :value="form.height_cm" type="number" inputmode="decimal" min="50" max="250" step="0.5" placeholder="170" class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3.5 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25" @input="fill('height_cm', $event.target.value)" />
           </label>
         </div>
+
+        <label class="block">
+          <span class="text-xs font-semibold text-text-2">HR Maks Personal (bpm)</span>
+          <input :value="form.max_hr" type="number" inputmode="numeric" min="80" max="250" placeholder="190" class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3.5 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25" @input="fill('max_hr', $event.target.value)" />
+          <span class="mt-1 block text-[11px] text-text-2">HR Maks Personal digunakan sebagai acuan perhitungan zona detak jantung. Isi berdasarkan hasil pengukuran maksimal atau gunakan estimasi.</span>
+        </label>
 
         <button type="submit" :disabled="saving" class="w-full rounded-lg bg-teal-600 py-3 text-sm font-bold text-white transition hover:bg-teal-600/90 disabled:opacity-50">
           {{ saving ? 'Menyimpan...' : 'Simpan profil' }}
@@ -170,7 +180,8 @@ const updatePassword = async () => {
     <section class="rounded-xl border border-line bg-surface p-5 text-xs text-text-2">
       <h2 class="text-sm font-bold text-text-1">Catatan</h2>
       <ul class="mt-2 list-disc space-y-1 pl-5">
-        <li>HR istirahat dan HR maks sekarang diatur per aktivitas, di tab Ringkasan masing-masing lari.</li>
+        <li>HR Maks Personal dipakai untuk zona detak jantung. HR maksimum tiap aktivitas tetap diambil dari data GPX.</li>
+        <li>HR istirahat diatur per aktivitas, di tab Ringkasan masing-masing lari.</li>
         <li>Berat dan tinggi siap dipakai untuk hitung pembakaran kalori dan rasio VO2 terhadap berat badan.</li>
         <li>Tanpa umur dan jenis kelamin, kategori VO2max (tabel Cooper) belum bisa ditampilkan.</li>
       </ul>

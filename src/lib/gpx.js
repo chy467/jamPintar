@@ -144,21 +144,27 @@ export const ZONES = [
   { n: "Z1", name: "Pemanasan", c: "#8a979c", lo: 0 },
 ]
 
-export function zoneDuration(track) {
-  const hrMax = track?.hrMaxSet || track?.maxHR
-  if (!hrMax) return null
+const MAX_ZONE_INTERVAL_S = 10
+
+export function zoneDuration(track, personalMaxHr) {
+  const hrMax = Number(personalMaxHr)
+  const pts = track?.pts
+  if (!Number.isFinite(hrMax) || hrMax <= 0 || !pts?.length) return null
   const secs = ZONES.map(() => 0)
-  for (let i = 1; i < track.pts.length; i++) {
-    const hr = track.pts[i].hr
-    if (!hr) continue
-    const zi = ZONES.findIndex((z) => hr / hrMax >= z.lo)
-    secs[zi] += track.pts[i].t - track.pts[i - 1].t
+  for (let i = 1; i < pts.length; i++) {
+    const hr = Number(pts[i].hr)
+    if (!Number.isFinite(hr) || hr <= 0) continue
+    const dt = Number(pts[i].t) - Number(pts[i - 1].t)
+    if (!Number.isFinite(dt) || dt <= 0) continue
+    const zi = Math.max(0, ZONES.findIndex((z) => hr / hrMax >= z.lo))
+    secs[zi] += Math.min(dt, MAX_ZONE_INTERVAL_S)
   }
-  const total = secs.reduce((a, b) => a + b, 0) || 1
+  const total = secs.reduce((a, b) => a + b, 0)
+  if (!total) return null
   return ZONES.map((z, i) => {
     const lo = Math.round(hrMax * z.lo)
     const hi = i ? Math.round(hrMax * ZONES[i - 1].lo) - 1 : null
-    return { ...z, sec: secs[i], pct: (secs[i] / total) * 100, range: i === 0 ? `${lo}+ bpm` : i === 4 ? `< ${hi + 1} bpm` : `${lo}${hi === null ? "" : "-" + hi} bpm` }
+    return { ...z, sec: secs[i], pct: (secs[i] / total) * 100, range: i === 0 ? `${lo}+ bpm` : i === 4 ? `< ${hi + 1} bpm` : `${lo}${hi == null ? "" : "-" + hi} bpm` }
   })
 }
 

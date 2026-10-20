@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import TrackMap from './TrackMap.vue'
 import { fmtDur, fmtPace, fmtDate } from '../lib/format'
 import { splitsOf, zoneDuration, findIdx } from '../lib/gpx'
+import { resolveMaxHr } from '../lib/hrMax'
 import { newPRsForTrack, PR_DISTANCES, vo2Performance, karvonenRecoveryTime } from '../lib/performance'
 import ShareStickerModal from './ShareStickerModal.vue'
 
@@ -38,8 +39,8 @@ let timer = null
 
 const hasHR = computed(() => !!props.track.pts.some((p) => p.hr))
 const splits = computed(() => splitsOf(props.track))
-const zones = computed(() => zoneDuration(props.track))
-const effMax = computed(() => props.track.hrMaxSet || props.track.maxHR)
+const personalMaxHr = computed(() => resolveMaxHr(props.profile))
+const zones = computed(() => zoneDuration(props.track, personalMaxHr.value?.value))
 
 const hrForm = reactive({ restingHr: '' })
 const hrSaving = ref(false)
@@ -60,7 +61,7 @@ const saveHrSettings = async () => {
   hrSaved.value = false
   const restingHr = hrForm.restingHr ? Number(hrForm.restingHr) : null
   if (restingHr != null && (restingHr < 30 || restingHr > 110)) return (hrError.value = 'HR Istirahat (Rest Heart Rate / RHR) umumnya antara 30 dan 110 bpm.')
-  if (restingHr != null && props.track.maxHR != null && restingHr >= props.track.maxHR) return (hrError.value = 'HR Istirahat (Rest Heart Rate / RHR) harus lebih kecil dari HR maks.')
+  if (restingHr != null && props.track.maxHR != null && restingHr >= props.track.maxHR) return (hrError.value = 'HR Istirahat (Rest Heart Rate / RHR) harus lebih kecil dari HR Maks Aktivitas.')
   hrSaving.value = true
   try {
     const { error } = await supabase.from('tracks').update({ resting_hr: restingHr }).eq('id', props.track.id)
@@ -108,7 +109,7 @@ const sections = computed(() => {
         ['Terendah', t.minEle, 'm'],
       ],
     } : null,
-    t.avgHR ? { title: 'Detak jantung', rows: [['Rata-rata', t.avgHR, 'bpm'], ['Maksimum', t.maxHR, 'bpm']] } : null,
+    t.avgHR ? { title: 'Detak jantung', rows: [['Rata-rata', t.avgHR, 'bpm'], ['HR Maks Aktivitas', t.maxHR, 'bpm']] } : null,
     t.avgCad ? { title: 'Dinamika lari', rows: [['Kadensi rata-rata', t.avgCad, 'spm']] } : null,
     perf.value || recovery.value ? {
       title: 'Fisiologi & Pemulihan',
@@ -296,26 +297,32 @@ onBeforeUnmount(stopPlay)
           </div>
         </section>
 
-        <section v-if="zones" class="rounded-xl border border-line bg-surface p-4">
+        <section v-if="hasHR" class="rounded-xl border border-line bg-surface p-4">
           <h3 class="text-sm font-bold">Waktu di zona detak jantung</h3>
-          <div class="mt-3 space-y-2.5">
-            <div v-for="z in zones" :key="z.n" class="flex items-center gap-3">
-              <span class="w-14 shrink-0 text-xs font-semibold">{{ z.n }}</span>
-              <div class="h-5 flex-1 overflow-hidden rounded bg-page">
-                <div class="h-full rounded" :style="{ width: Math.max(z.pct, z.sec ? 2 : 0) + '%', background: z.c }"></div>
+          <template v-if="zones">
+            <div class="mt-3 space-y-2.5">
+              <div v-for="z in zones" :key="z.n" class="flex items-center gap-3">
+                <span class="w-14 shrink-0 text-xs font-semibold">{{ z.n }}</span>
+                <div class="h-5 flex-1 overflow-hidden rounded bg-page">
+                  <div class="h-full rounded" :style="{ width: Math.max(z.pct, z.sec ? 2 : 0) + '%', background: z.c }"></div>
+                </div>
+                <span class="font-num w-11 shrink-0 text-right text-sm font-semibold">{{ fmtDur(z.sec) }}</span>
               </div>
-              <span class="font-num w-11 shrink-0 text-right text-sm font-semibold">{{ fmtDur(z.sec) }}</span>
             </div>
-          </div>
-          <ul class="mt-3 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-text-2">
-            <li v-for="z in zones" :key="z.n"><span class="mr-1.5 inline-block h-2 w-2 rounded-full" :style="{ background: z.c }"></span>{{ z.n }} {{ z.name }} {{ z.range }}</li>
-          </ul>
-          <p class="mt-2 text-[10px] text-text-2">Zona dihitung dari HR maks aktivitas ini ({{ effMax }} bpm).</p>
+            <ul class="mt-3 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-text-2">
+              <li v-for="z in zones" :key="z.n"><span class="mr-1.5 inline-block h-2 w-2 rounded-full" :style="{ background: z.c }"></span>{{ z.n }} {{ z.name }} {{ z.range }}</li>
+            </ul>
+            <p class="mt-2 text-[10px] text-text-2">
+              {{ personalMaxHr.source === 'estimated' ? `Zona dihitung berdasarkan estimasi HR Maks Personal ${personalMaxHr.value} bpm (208 - 0,7 x umur).` : `Zona dihitung berdasarkan HR Maks Personal ${personalMaxHr.value} bpm.` }}
+            </p>
+          </template>
+          <p v-else-if="!personalMaxHr" class="mt-3 text-xs text-text-2">Isi HR Maks Personal atau umur pada Profil untuk melihat zona detak jantung.</p>
+          <p v-else class="mt-3 text-xs text-text-2">Aktivitas ini belum punya sampel detak jantung yang valid, jadi zona tidak bisa dihitung.</p>
         </section>
 
         <section class="rounded-xl border border-line bg-surface p-4">
           <h3 class="text-sm font-bold">Pengaturan detak jantung</h3>
-          <p class="mt-1 text-xs text-text-2">Atur HR Istirahat (Rest Heart Rate / RHR) untuk estimasi VO2max. HR maks otomatis diambil dari data GPX.</p>
+          <p class="mt-1 text-xs text-text-2">Atur HR Istirahat (Rest Heart Rate / RHR) untuk estimasi VO2max. HR Maks Aktivitas ({{ track.maxHR ?? '-' }} bpm) diambil otomatis dari data GPX dan hanya berlaku untuk aktivitas ini.</p>
           <p v-if="hrSaved" role="status" class="mt-3 rounded-lg border border-teal-400/40 bg-teal-400/10 p-2.5 text-xs text-teal-600">Pengaturan tersimpan.</p>
           <p v-if="hrError" role="alert" class="mt-3 rounded-lg border border-[#e6b3ae] bg-[#fbeceb] p-2.5 text-xs text-[#a93226]">{{ hrError }}</p>
           <form class="mt-3 space-y-3" @submit.prevent="saveHrSettings">
