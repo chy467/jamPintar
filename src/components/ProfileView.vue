@@ -1,6 +1,7 @@
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
+import { ageFromBirthDate, profileAge } from '../lib/profile'
 
 const props = defineProps({
   profile: { type: Object, default: null },
@@ -11,7 +12,7 @@ const emit = defineEmits(['save', 'logout'])
 
 const form = reactive({
   display_name: '',
-  age: '',
+  birth_date: '',
   gender: '',
   weight_kg: '',
   height_cm: '',
@@ -20,11 +21,22 @@ const form = reactive({
 const errorMessage = ref('')
 const saved = ref(false)
 
+// Profil lama yang belum punya tanggal lahir tetap memakai kolom age.
+const formAge = computed(() => {
+  const derived = ageFromBirthDate(form.birth_date)
+  if (derived != null) return derived
+  return form.birth_date ? null : profileAge(props.profile)
+})
+
+const pad = (n) => String(n).padStart(2, '0')
+const today = new Date()
+const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+
 watch(
   () => props.profile,
   (p) => {
     form.display_name = p?.display_name || ''
-    form.age = p?.age || ''
+    form.birth_date = p?.birth_date || ''
     form.gender = p?.gender || ''
     form.weight_kg = p?.weight_kg || ''
     form.height_cm = p?.height_cm || ''
@@ -37,15 +49,17 @@ const fill = (path, v) => { saved.value = false; form[path] = v }
 
 const submit = () => {
   errorMessage.value = ''
+  const age = ageFromBirthDate(form.birth_date)
   const payload = {
     display_name: form.display_name.trim() || null,
-    age: form.age ? Number(form.age) : null,
+    birth_date: form.birth_date || null,
     gender: form.gender || null,
     weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
     height_cm: form.height_cm ? Number(form.height_cm) : null,
     max_hr: form.max_hr ? Number(form.max_hr) : null,
   }
-  if (payload.age != null && (payload.age < 5 || payload.age > 110)) return (errorMessage.value = 'Umur harus antara 5 dan 110 tahun.')
+  if (form.birth_date && age == null) return (errorMessage.value = 'Tanggal lahir tidak valid atau berada di masa depan.')
+  if (age != null && (age < 5 || age > 110)) return (errorMessage.value = 'Umur harus antara 5 dan 110 tahun.')
   if (payload.weight_kg != null && (payload.weight_kg < 20 || payload.weight_kg > 300)) return (errorMessage.value = 'Berat badan harus antara 20 dan 300 kg.')
   if (payload.height_cm != null && (payload.height_cm < 50 || payload.height_cm > 250)) return (errorMessage.value = 'Tinggi badan harus antara 50 dan 250 cm.')
   if (payload.max_hr != null && (payload.max_hr < 80 || payload.max_hr > 250)) return (errorMessage.value = 'HR Maks Personal harus antara 80 dan 250 bpm.')
@@ -100,7 +114,7 @@ const updatePassword = async () => {
   <main class="mx-auto w-full max-w-md space-y-4 px-4 pb-32 pt-4">
     <section class="rounded-xl border border-line bg-surface p-5">
       <h1 class="font-num text-xl font-semibold">Profil atlet</h1>
-      <p class="mt-1 text-xs text-text-2">Umur, jenis kelamin, berat, tinggi, dan HR Maks Personal dipakai untuk perhitungan lanjutan seperti estimasi VO2max, pembakaran kalori, dan zona detak jantung.</p>
+      <p class="mt-1 text-xs text-text-2">Tanggal lahir, jenis kelamin, berat, tinggi, dan HR Maks Personal dipakai untuk perhitungan lanjutan seperti estimasi VO2max, pembakaran kalori, dan zona detak jantung. Umur dihitung otomatis dari tanggal lahir.</p>
 
       <p v-if="saved" role="status" class="mt-4 rounded-lg border border-teal-400/40 bg-teal-400/10 p-3 text-sm text-teal-600">Profil tersimpan.</p>
       <p v-if="errorMessage" role="alert" class="mt-4 rounded-lg border border-[#e6b3ae] bg-[#fbeceb] p-3 text-sm text-[#a93226]">{{ errorMessage }}</p>
@@ -111,19 +125,27 @@ const updatePassword = async () => {
           <input :value="form.display_name" type="text" placeholder="Nama kamu" class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3.5 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25" @input="fill('display_name', $event.target.value)" />
         </label>
 
-        <div class="grid grid-cols-2 gap-3">
-          <label class="block">
-            <span class="text-xs font-semibold text-text-2">Umur</span>
-            <input :value="form.age" type="number" inputmode="numeric" min="5" max="110" placeholder="30" class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3.5 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25" @input="fill('age', $event.target.value)" />
-          </label>
-          <label class="block">
-            <span class="text-xs font-semibold text-text-2">Jenis kelamin</span>
-            <select :value="form.gender" class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25" @change="fill('gender', $event.target.value)">
-              <option value="">Pilih</option>
-              <option value="male">Laki-laki</option>
-              <option value="female">Perempuan</option>
-            </select>
-          </label>
+        <label class="block">
+          <span class="text-xs font-semibold text-text-2">Tanggal lahir</span>
+          <input :value="form.birth_date" type="date" :max="todayISO" class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3.5 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25" @input="fill('birth_date', $event.target.value)" />
+        </label>
+
+        <div class="space-y-1">
+          <div class="grid grid-cols-2 gap-3">
+            <label class="block">
+              <span class="text-xs font-semibold text-text-2">Jenis kelamin</span>
+              <select :value="form.gender" class="mt-1 w-full rounded-lg border border-text-2/40 bg-surface px-3 py-2.5 text-sm focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/25" @change="fill('gender', $event.target.value)">
+                <option value="">Pilih</option>
+                <option value="male">Laki-laki</option>
+                <option value="female">Perempuan</option>
+              </select>
+            </label>
+            <div>
+              <span class="text-xs font-semibold text-text-2">Umur</span>
+              <p class="mt-1 w-full rounded-lg border border-line bg-page px-3.5 py-2.5 text-sm">{{ formAge != null ? `${formAge} tahun` : 'Belum diisi' }}</p>
+            </div>
+          </div>
+          <p class="text-[11px] text-text-2">Umur dihitung otomatis dari tanggal lahir, jadi ikut bertambah tanpa perlu diperbarui manual.</p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -183,7 +205,8 @@ const updatePassword = async () => {
         <li>HR Maks Personal dipakai untuk zona detak jantung. HR maksimum tiap aktivitas tetap diambil dari data GPX.</li>
         <li>HR istirahat diatur per aktivitas, di tab Ringkasan masing-masing lari.</li>
         <li>Berat dan tinggi siap dipakai untuk hitung pembakaran kalori dan rasio VO2 terhadap berat badan.</li>
-        <li>Tanpa umur dan jenis kelamin, kategori VO2max (tabel Cooper) belum bisa ditampilkan.</li>
+        <li>Umur dihitung otomatis dari tanggal lahir dan dipakai untuk estimasi HR maks serta kategori VO2max.</li>
+        <li>Tanpa tanggal lahir dan jenis kelamin, kategori VO2max (tabel Cooper) belum bisa ditampilkan.</li>
       </ul>
     </section>
 

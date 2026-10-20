@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { fmtDur, fmtPace, fmtDate } from '../lib/format'
 import { PR_DISTANCES, personalRecords, predictTimes, cooperBand, bestVO2 } from '../lib/performance'
+import { profileAge } from '../lib/profile'
 
 const props = defineProps({
   tracks: { type: Array, default: () => [] },
@@ -14,10 +15,11 @@ defineEmits(['open', 'nav'])
 
 const pr = computed(() => personalRecords(props.tracks))
 const predictions = computed(() => predictTimes(pr.value.records))
+const roughCount = computed(() => predictions.value.predictions.filter((p) => p.rough).length)
 const best = computed(() => bestVO2(props.tracks, props.profile))
 const band = computed(() =>
   props.vo2?.value != null
-    ? cooperBand(props.vo2.value, props.profile?.gender, props.profile?.age && Number(props.profile.age))
+    ? cooperBand(props.vo2.value, props.profile?.gender, profileAge(props.profile))
     : null,
 )
 
@@ -59,12 +61,12 @@ const trend = computed(() => {
       <section v-if="vo2 && vo2.value" class="rounded-xl bg-ink-950 p-5 text-dark-1">
         <div class="flex items-end justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold tracking-wide text-teal-400">VO2max</p>
+            <p class="text-xs font-semibold tracking-wide text-teal-400">Estimasi VO2max</p>
             <p class="font-num text-6xl font-bold leading-none">{{ vo2.value }}</p>
           </div>
           <div class="text-right">
             <p v-if="band" class="inline-block rounded-md bg-teal-400/15 px-2.5 py-1 text-xs font-bold text-teal-400">{{ band.label }}</p>
-            <p class="mt-1.5 text-[11px] text-dark-2">{{ vo2.method === 'hr' ? 'Dari detak jantung' : 'Dari performa terbaik' }}</p>
+            <p class="mt-1.5 text-[11px] text-dark-2">{{ vo2.method === 'hr' ? 'Dari detak jantung (Uth)' : 'Dari pace dan kemiringan (ACSM)' }}</p>
           </div>
         </div>
 
@@ -88,7 +90,7 @@ const trend = computed(() => {
 
         <div v-if="best" class="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3">
           <div>
-            <p class="text-[11px] text-dark-2">Skor VO2max terbaik</p>
+            <p class="text-[11px] text-dark-2">Estimasi VO2max terbaik</p>
             <p class="font-num text-2xl font-bold leading-tight">{{ best.value }}<span class="ml-1 text-xs font-medium text-dark-2">ml/kg/menit</span></p>
           </div>
           <button type="button" class="shrink-0 rounded-lg bg-teal-400/15 px-3 py-2 text-xs font-bold text-teal-400 transition hover:bg-teal-400/25" @click="$emit('open', best.trackId)">
@@ -97,11 +99,16 @@ const trend = computed(() => {
         </div>
 
         <p class="mt-4 border-t border-white/10 pt-3 text-[11px] text-dark-2">
-          Estimasi per aktivitas dari segmen pace konsisten 10 menit dengan rumus biaya lari ACSM, atau dari rasio HR maks dengan HR istirahat yang kamu isi di Pengaturan detak jantung setiap aktivitas (rumus Uth). Pengelompokan kategori sesuai tabel The Cooper Institute.
+          Estimasi, bukan hasil tes laboratorium. Dihitung dari segmen berjalan minimal 10 menit memakai kecepatan rata-rata dan kemiringan lintasan (persamaan ACSM), atau dari rasio HR maks personal dengan HR istirahat (rumus Uth). Pengelompokan kategori sesuai tabel The Cooper Institute.
         </p>
         <button type="button" class="mt-3 rounded-lg bg-teal-400 px-3 py-2 text-xs font-bold text-ink-950 transition hover:bg-teal-400/90" @click="$emit('nav', 'profile')">
-          Kelola profil (umur, jenis kelamin, berat)
+          Kelola profil (umur, jenis kelamin, HR Maks Personal)
         </button>
+      </section>
+
+      <section v-else-if="tracks.length" class="rounded-xl border border-dashed border-text-2/40 p-4">
+        <p class="text-sm font-semibold">Estimasi VO2max belum tersedia</p>
+        <p class="mt-1 text-xs text-text-2">Butuh aktivitas dengan segmen berjalan minimal 10 menit dan data GPS yang valid, atau data detak jantung (HR Maks Personal dan HR istirahat) di Profil dan detail aktivitas.</p>
       </section>
 
       <section class="rounded-xl border border-line bg-surface">
@@ -135,16 +142,23 @@ const trend = computed(() => {
         </dl>
       </section>
 
-      <section v-if="predictions.base && !loading" class="rounded-xl border border-line bg-surface p-4">
+      <section v-if="predictions.predictions.length && !loading" class="rounded-xl border border-line bg-surface p-4">
         <h2 class="font-num text-lg font-semibold">Estimasi waktu balapan</h2>
-        <p class="text-xs text-text-2">Diprediksi dari rekor {{ predictions.base.label }} ({{ fmtDur(predictions.base.time) }}) dengan persamaan Riegel. Hanya estimasi.</p>
+        <p class="text-xs text-text-2">Dihitung dengan persamaan Riegel dari rekor terdekat yang tersedia. Estimasi, bukan jaminan hasil lomba.</p>
         <div class="mt-3 grid grid-cols-2 gap-2">
           <div v-for="p in predictions.predictions" :key="p.key" class="rounded-lg bg-page p-3">
             <p class="text-[11px] text-text-2">{{ p.label }}</p>
             <p class="font-num text-xl font-bold">{{ fmtDur(p.time) }}</p>
             <p class="text-[11px] text-text-2">{{ fmtPace(p.pace) }}/km</p>
+            <p class="mt-1 text-[10px] text-text-2">Acuan {{ p.source.label }} {{ fmtDur(p.source.time) }}</p>
           </div>
         </div>
+        <p v-if="roughCount" class="mt-2 text-[11px] text-text-2">{{ roughCount }} prediksi memakai acuan di luar jarak ideal, jadi hasilnya masih kasar.</p>
+      </section>
+
+      <section v-else-if="tracks.length && !loading" class="rounded-xl border border-dashed border-text-2/40 p-4">
+        <p class="text-sm font-semibold">Estimasi waktu balapan belum tersedia</p>
+        <p class="mt-1 text-xs text-text-2">Butuh rekor aktivitas dengan jarak dan waktu tempuh yang valid dalam 6 bulan terakhir.</p>
       </section>
 
       <section v-if="!tracks.length" class="rounded-xl border border-dashed border-text-2/40 p-8 text-center">

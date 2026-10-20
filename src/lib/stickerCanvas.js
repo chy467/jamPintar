@@ -146,6 +146,25 @@ export const STICKER_TEMPLATES = [
       const cardX = pad
       const cardY = height - pad - cardH
 
+      // 0. Header brand (mode gelap): panel translucent supaya teks tidak menyatu dengan foto
+      if (isDark) {
+        ctx.font = `800 ${30 * u}px "Barlow", sans-serif`
+        const brandW = ctx.measureText('JAM PINTAR').width
+        ctx.font = `500 ${20 * u}px "Barlow", sans-serif`
+        const dateW = ctx.measureText(data.dateStr).width
+        const chipPad = 18 * u
+        const chipW = Math.max(brandW, dateW) + chipPad * 2
+
+        ctx.save()
+        ctx.shadowColor = 'rgba(15, 23, 42, 0.18)'
+        ctx.shadowBlur = 18 * u
+        ctx.shadowOffsetY = 6 * u
+        roundRect(ctx, pad - chipPad, 24 * u, chipW, 92 * u, 16 * u)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.75)'
+        ctx.fill()
+        ctx.restore()
+      }
+
       // 1. Gradient bawah: pemanis + jaring pengaman keterbacaan
       const grad = ctx.createLinearGradient(0, height * 0.35, 0, height)
       if (isDark) {
@@ -161,8 +180,8 @@ export const STICKER_TEMPLATES = [
       // 2. Rute peta: ukuran tetap, tidak menyusut saat split bertambah
       if (opts.showMap && data.pts.length > 1) {
         const mapY = 130 * u
-        const mapH = Math.max(height * 0.78 - mapY, 320 * u)
-        drawRoute(ctx, data.pts, pad, mapY, cardW, mapH, accentColor, 5 * u)
+        const mapH = Math.max(height * 0.68 - mapY, 590 * u)
+        drawRoute(ctx, data.pts, pad, mapY, cardW, mapH, accentColor, 3 * u)
       }
 
       // 3. Overlay statistik: tanpa bingkai, menimpa peta bila perlu
@@ -171,7 +190,7 @@ export const STICKER_TEMPLATES = [
       ctx.shadowBlur = 24 * u
       ctx.shadowOffsetY = 8 * u
       roundRect(ctx, cardX, cardY, cardW, cardH, 22 * u)
-      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(14, 31, 38, 0.75)'
+      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.75)' : 'rgba(14, 31, 38, 0.75)'
       ctx.fill()
       ctx.restore()
 
@@ -248,11 +267,11 @@ export const STICKER_TEMPLATES = [
       }
 
       // 7. Header brand
-      ctx.fillStyle = '#ffffff' //textColor
+      ctx.fillStyle = textColor
       ctx.font = `800 ${30 * u}px "Barlow", sans-serif`
-      ctx.fillText('JAM PINTAR', pad, 62 * u)
+      ctx.fillText('Runner Pro', pad, 62 * u)
 
-      ctx.fillStyle = '#ffffff' //mutedColor
+      ctx.fillStyle = mutedColor
       ctx.font = `500 ${20 * u}px "Barlow", sans-serif`
       ctx.fillText(data.dateStr, pad, 94 * u)
     },

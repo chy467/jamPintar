@@ -35,6 +35,21 @@ export function parseGPX(text) {
   return { raw, name: doc.querySelector("trk > name")?.textContent?.trim() }
 }
 
+// Elevasi: rata-rata bergerak 5 sampel supaya noise barometrik tidak ikut dihitung
+// sebagai naik/turun. Dipakai buildTrack (seluruh aktivitas) dan grade segmen VO2max.
+export function elevationGainLoss(eleList) {
+  const el = (eleList || []).filter((v) => v != null && Number.isFinite(v))
+  let gain = 0, loss = 0
+  if (el.length > 5) {
+    const sm = el.map((_, i) => avg(el.slice(Math.max(0, i - 2), i + 3)))
+    for (let i = 1; i < sm.length; i++) {
+      const diff = sm[i] - sm[i - 1]
+      if (diff > 0) gain += diff; else loss -= diff
+    }
+  }
+  return { gain, loss }
+}
+
 export function buildTrack(raw, title) {
   if (!raw.every((p) => Number.isFinite(p.time))) throw new Error("GPX tidak memiliki data waktu, pace tidak bisa dihitung.")
   let d = 0
@@ -45,14 +60,7 @@ export function buildTrack(raw, title) {
   })
 
   const el = raw.map((p) => p.ele).filter((v) => v != null)
-  let gain = 0, loss = 0
-  if (el.length > 5) {
-    const sm = el.map((_, i) => avg(el.slice(Math.max(0, i - 2), i + 3)))
-    for (let i = 1; i < sm.length; i++) {
-      const diff = sm[i] - sm[i - 1]
-      if (diff > 0) gain += diff; else loss -= diff
-    }
-  }
+  const { gain, loss } = elevationGainLoss(el)
 
   const hrs = raw.map((p) => p.hr).filter(Boolean)
   const cads = raw.map((p) => p.cad).filter(Boolean)

@@ -1,3 +1,5 @@
+import { profileAge } from './profile'
+
 export const MAX_HR_MIN = 80
 export const MAX_HR_MAX = 250
 
@@ -9,8 +11,8 @@ export function resolveMaxHr(profile) {
   if (manual != null && Number.isFinite(Number(manual)) && Number(manual) > 0) {
     return { value: Math.round(Number(manual)), source: 'manual' }
   }
-  const age = profile?.age
-  if (age != null && Number.isFinite(Number(age)) && Number(age) > 0) {
+  const age = profileAge(profile)
+  if (age != null) {
     return { value: estimateMaxHr(age), source: 'estimated' }
   }
   return null

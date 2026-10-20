@@ -2,10 +2,10 @@
 import { ref, reactive, computed, watch, onBeforeUnmount, nextTick } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import TrackMap from './TrackMap.vue'
-import { fmtDur, fmtPace, fmtDate } from '../lib/format'
+import { fmtDur, fmtPace, fmtDate, fmtHours } from '../lib/format'
 import { splitsOf, zoneDuration, findIdx } from '../lib/gpx'
 import { resolveMaxHr } from '../lib/hrMax'
-import { newPRsForTrack, PR_DISTANCES, vo2Performance, karvonenRecoveryTime } from '../lib/performance'
+import { newPRsForTrack, PR_DISTANCES, vo2Performance, recoveryBreakdown } from '../lib/performance'
 import ShareStickerModal from './ShareStickerModal.vue'
 
 const props = defineProps({
@@ -78,8 +78,8 @@ const cur = computed(() => (previewIdx.value != null ? props.track.pts[previewId
 const newPRs = computed(() => newPRsForTrack(props.tracks, props.track.id))
 
 const PR_LABELS = PR_DISTANCES.reduce((m, d) => { m[d.key] = d.label; return m }, {})
-const perf = computed(() => (props.track.duration >= 120 ? vo2Performance(props.track) : null))
-const recovery = computed(() => karvonenRecoveryTime(props.track, props.profile))
+const perf = computed(() => vo2Performance(props.track))
+const recovery = computed(() => recoveryBreakdown(props.track, props.profile))
 
 const headline = computed(() => [
   { label: 'Jarak', value: (props.track.distance / 1000).toFixed(2), unit: 'km' },
@@ -114,9 +114,12 @@ const sections = computed(() => {
     perf.value || recovery.value ? {
       title: 'Fisiologi & Pemulihan',
       rows: [
-        perf.value ? ['Perkiraan VO2max (segmen terbaik)', Math.round(perf.value), 'ml/kg/menit'] : null,
-        recovery.value ? ['Perkiraan waktu pemulihan', recovery.value, 'jam'] : null,
+        perf.value ? ['Estimasi VO2max (segmen terbaik 10 menit)', Math.round(perf.value), 'ml/kg/menit'] : null,
+        recovery.value ? ['Base recovery', fmtHours(recovery.value.base), ''] : null,
+        recovery.value ? ['Extra recovery', fmtHours(recovery.value.extra), ''] : null,
+        recovery.value ? ['Total recovery', fmtHours(recovery.value.total), ''] : null,
       ],
+      note: 'Angka estimasi, bukan hasil tes laboratorium atau waktu pemulihan medis.',
     } : null,
   ]
   return out.filter(Boolean).map((s) => ({ ...s, rows: s.rows.filter(Boolean) }))
@@ -346,6 +349,12 @@ onBeforeUnmount(stopPlay)
               <dd class="font-num text-lg font-semibold">{{ r[1] }}<span class="ml-1 text-xs font-medium text-text-2">{{ r[2] }}</span></dd>
             </div>
           </dl>
+          <p v-if="s.note" class="border-t border-line px-4 py-2.5 text-[11px] text-text-2">{{ s.note }}</p>
+        </section>
+
+        <section v-if="!perf" class="rounded-xl border border-line bg-surface p-4">
+          <h3 class="text-sm font-bold">Estimasi VO2max</h3>
+          <p class="mt-1 text-xs text-text-2">Belum bisa dihitung: aktivitas ini belum punya segmen berjalan minimal 10 menit dengan data jarak dan waktu yang valid.</p>
         </section>
       </div>
     </div>

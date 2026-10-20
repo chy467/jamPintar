@@ -22,7 +22,7 @@ Banyak pelari yang merekam data lari menggunakan jam tangan pintar (Garmin, Coro
    - **Personal Best (PB)**: Deteksi rekor terbaik untuk 1 km, 1 mil, 5K, 10K, Half Marathon, Marathon, serta aktivitas terpanjang.
    - **Estimasi VO2max**: Kalkulasi berbasis performa ACSM atau detak jantung Uth, dilengkapi kategori kebugaran Institut Cooper.
    - **Prediksi Waktu Balapan**: Formula Riegel untuk memprediksi potensi waktu tempuh 5K - 42.2K berdasarkan rekor terbaru.
-   - **Profil Atlet & Keamanan**: Manajemen data profil (umur, berat, tinggi, gender, HR maks) dan autentikasi akun via Supabase Auth.
+   - **Profil Atlet & Keamanan**: Manajemen data profil (tanggal lahir, berat, tinggi, gender, HR maks) dan autentikasi akun via Supabase Auth.
    - **Recovery Time (Metode Karvonen)**: Estimasi jam waktu istirahat pemulihan berbasis denyut cadangan jantung (HRR) + 5 jam batas aman.
    - **Stiker Aktivitas (Share Story/Post)**: Pembuat stiker rekap lari bergaya Strava/NRC dengan foto latar pribadi, rute peta GPS, split km, dan template layout yang modular (dapat ditambah template baru dengan mudah).
 

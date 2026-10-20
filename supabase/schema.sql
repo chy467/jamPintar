@@ -9,6 +9,7 @@ create table if not exists public.profiles (
   weight_kg numeric,
   height_cm numeric,
   gender text check (gender in ('male', 'female')),
+  birth_date date,
   age int check (age between 5 and 110),
   max_hr numeric,
   created_at timestamptz not null default now(),
@@ -18,6 +19,8 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists weight_kg numeric;
 alter table public.profiles add column if not exists height_cm numeric;
 alter table public.profiles add column if not exists max_hr numeric;
+-- Umur kini diturunkan dari tanggal lahir. Kolom age dibiarkan untuk profil lama.
+alter table public.profiles add column if not exists birth_date date;
 
 alter table public.profiles enable row level security;
 

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { fmtDur, fmtPace } from '../lib/format'
 import { routeThumb } from '../lib/gpx'
 import { cooperBand, activityVO2, badgesForTrack } from '../lib/performance'
+import { profileAge } from '../lib/profile'
 
 const props = defineProps({
   tracks: { type: Array, default: () => [] },
@@ -110,7 +111,7 @@ const totals = computed(() => {
 
 const band = computed(() =>
   props.vo2?.value != null
-    ? cooperBand(props.vo2.value, props.profile?.gender, props.profile?.age && Number(props.profile.age))
+    ? cooperBand(props.vo2.value, props.profile?.gender, profileAge(props.profile))
     : null,
 )
 
@@ -209,10 +210,10 @@ const badgesOf = (t) => badgesForTrack(props.tracks, t.id)
       <section v-if="vo2 && vo2.value" class="relative overflow-hidden rounded-xl bg-ink-950 p-5 text-dark-1">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold tracking-wide text-teal-400">VO2max</p>
+            <p class="text-xs font-semibold tracking-wide text-teal-400">Estimasi VO2max</p>
             <p class="font-num text-5xl font-bold leading-none">{{ vo2.value }}</p>
             <p class="mt-1 text-xs capitalize text-dark-2">
-              {{ vo2.method === 'hr' ? 'Estimasi dari detak jantung' : 'Estimasi dari performa' }}
+              {{ vo2.method === 'hr' ? 'Dari detak jantung (Uth)' : 'Dari pace dan kemiringan (ACSM)' }}
             </p>
           </div>
           <button type="button" class="shrink-0 rounded-lg bg-teal-400 px-3 py-2 text-xs font-bold text-ink-950 transition hover:bg-teal-400/90" @click="$emit('nav', 'records')">
@@ -224,6 +225,11 @@ const badgesOf = (t) => badgesForTrack(props.tracks, t.id)
         </svg>
         <p v-if="band" class="mt-3 inline-block rounded-md bg-teal-400/15 px-2.5 py-1 text-xs font-bold text-teal-400">{{ band.label }}</p>
         <p v-else class="mt-3 text-xs text-dark-2">Lengkapi umur dan jenis kelamin di Profil untuk melihat kategori.</p>
+      </section>
+
+      <section v-else-if="tracks.length" class="rounded-xl border border-dashed border-text-2/40 p-4">
+        <p class="text-sm font-semibold">Estimasi VO2max belum tersedia</p>
+        <p class="mt-1 text-xs text-text-2">Butuh aktivitas dengan segmen berjalan minimal 10 menit dan data GPS yang valid, atau data detak jantung (HR Maks Personal dan HR istirahat) di Profil dan detail aktivitas.</p>
       </section>
 
       <section class="rounded-xl border border-line bg-surface p-4">
@@ -293,7 +299,7 @@ const badgesOf = (t) => badgesForTrack(props.tracks, t.id)
             <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
               <span v-if="vo2Of(t)" class="inline-flex shrink-0 items-center rounded-md bg-teal-400/15 px-2 py-0.5 text-[11px] font-bold text-teal-600">
                 <svg class="mr-1 h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 4.3 4.6.4-3.5 3 1 4.6L12 11.9l-4 2.4 1-4.6-3.5-3 4.6-.4z" /></svg>
-                VO2max {{ vo2Of(t) }}
+                VO2 {{ vo2Of(t) }}
               </span>
               <span v-for="b in badgesOf(t)" :key="b" class="inline-flex shrink-0 items-center rounded-md border border-line bg-page px-2 py-0.5 text-[11px] font-semibold text-text-1">
                 <svg class="mr-1 h-3 w-3 text-teal-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 4.3 4.6.4-3.5 3 1 4.6L12 11.9l-4 2.4 1-4.6-3.5-3 4.6-.4z" /></svg>

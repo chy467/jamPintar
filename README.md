@@ -14,7 +14,7 @@ Dibangun dengan Vue 3, Vite, Tailwind CSS v4 (PostCSS), Leaflet, dan Supabase un
 - Zona detak jantung dengan HR maks yang bisa diatur per aktivitas (di tab Ringkasan), termasuk HR istirahat untuk estimasi VO2max pendetakan-jantung.
 - Personal best untuk 1 km, 1 mil, 5K, 10K, half, dan marathon + aktivitas terpanjang.
 - Estimasi VO2max (metode performa ACSM atau metode detak jantung Uth) dan kategori sesuai tabel The Cooper Institute.
-- Profil atlet: umur, jenis kelamin, berat badan, tinggi badan (siap dipakai untuk hitung kalori dan rasio VO2/berat).
+- Profil atlet: tanggal lahir (umur dihitung otomatis), jenis kelamin, berat badan, tinggi badan (siap dipakai untuk hitung kalori dan rasio VO2/berat).
 - Prediksi waktu balapan (Riegel) dari rekor 5K-21,1K terbaru.
 
 ## Setup
