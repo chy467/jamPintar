@@ -304,8 +304,9 @@ export async function renderSticker({
     try {
       const img = await loadImage(imageSrc)
       drawImageCover(ctx, img, 0, 0, width, height)
+      drawPhotoOverlay(ctx, width, height, options.colorTheme)
     } catch {
-      drawDefaultBackground(ctx, width, height)
+      drawDefaultBackground(ctx, width, height, options.colorTheme)
     }
   } else {
     drawDefaultBackground(ctx, width, height, options.colorTheme)
@@ -349,5 +350,12 @@ function drawImageCover(ctx, img, x, y, w, h) {
 // Latar default mengikuti warna teks: teks putih -> latar gelap, teks gelap -> latar terang.
 function drawDefaultBackground(ctx, w, h, colorTheme) {
   ctx.fillStyle = colorTheme === 'dark' ? '#eef2f3' : '#0e1f26'
+  ctx.fillRect(0, 0, w, h)
+}
+
+// Overlay foto: warna berlawanan dengan warna teks supaya peta dan statistik menonjol,
+// tapi tetap transparan agar foto masih terlihat.
+function drawPhotoOverlay(ctx, w, h, colorTheme) {
+  ctx.fillStyle = colorTheme === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(14, 31, 38, 0.4)'
   ctx.fillRect(0, 0, w, h)
 }
