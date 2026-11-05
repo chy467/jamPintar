@@ -126,7 +126,7 @@ export const STICKER_TEMPLATES = [
   {
     id: 'minimal-modern',
     name: 'Modern Minimal',
-    description: 'Statistik besar dalam panel solid, rute melayang di atas foto.',
+    description: 'Statistik ringkas di tengah, rute melayang di atas foto.',
     render: (ctx, { width, height, data, opts }) => {
       const u = height < 1400 ? 0.72 : 1
       const isDark = opts.colorTheme === 'dark'
@@ -134,22 +134,34 @@ export const STICKER_TEMPLATES = [
       const mutedColor = isDark ? 'rgba(15, 23, 42, 0.62)' : 'rgba(255, 255, 255, 0.72)'
       const accentColor = isDark ? '#0a6a7d' : '#2dd4bf'
       const pad = Math.round(48 * (height < 1400 ? 0.75 : 1))
-      const cardW = width - pad * 2
-      const innerPad = 28 * u
+      const contentW = width - pad * 2
+
+      // Peta + statistik diperkecil 22% dari lebar konten, lalu dipusatkan
+      const su = u * 0.78
+      const blockW = contentW * 0.78
+      const blockX = (width - blockW) / 2
+      const innerPad = 28 * su
 
       const { rows, truncated } = opts.showSplits ? pickSplits(data.splits) : { rows: [], truncated: false }
-      const rowH = 36 * u
+      const rowH = 36 * su
 
-      const statsH = 250 * u
-      const splitsH = rows.length ? 46 * u + rows.length * rowH + 14 * u : 0
+      const statsH = 250 * su
+      const splitsH = rows.length ? 46 * su + rows.length * rowH + 14 * su : 0
       const cardH = statsH + splitsH
-      const cardX = pad
-      const cardY = height - pad - cardH
+
+      // Statistik: di tengah halaman bila tanpa peta, tepat di bawah peta bila peta tampil
+      const hasMap = opts.showMap && data.pts.length > 1
+      const mapGap = 24 * su
+      const mapH = Math.max(height * 0.35 - 350 * u, 590 * u) * 0.78
+      const groupH = hasMap ? mapH + mapGap + cardH : cardH
+      const groupY = Math.max((height - groupH) / 2, 130 * u)
+      const mapY = groupY
+      const cardY = hasMap ? groupY + mapH + mapGap : groupY
 
       // 0. Header brand (mode gelap): panel translucent supaya teks tidak menyatu dengan foto
       if (isDark) {
         ctx.font = `800 ${30 * u}px "Barlow", sans-serif`
-        const brandW = ctx.measureText('JAM PINTAR').width
+        const brandW = ctx.measureText('Runner Pro').width
         ctx.font = `500 ${20 * u}px "Barlow", sans-serif`
         const dateW = ctx.measureText(data.dateStr).width
         const chipPad = 18 * u
@@ -165,57 +177,42 @@ export const STICKER_TEMPLATES = [
         ctx.restore()
       }
 
-      // 1. Gradient bawah: pemanis + jaring pengaman keterbacaan
-      const grad = ctx.createLinearGradient(0, height * 0.35, 0, height)
-      if (isDark) {
-        grad.addColorStop(0, 'rgba(255, 255, 255, 0)')
-        grad.addColorStop(1, 'rgba(255, 255, 255, 0.55)')
-      } else {
-        grad.addColorStop(0, 'rgba(0, 0, 0, 0)')
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0.6)')
-      }
-      ctx.fillStyle = grad
-      ctx.fillRect(0, height * 0.35, width, height * 0.65)
-
-      // 2. Rute peta: ukuran tetap, tidak menyusut saat split bertambah
-      if (opts.showMap && data.pts.length > 1) {
-        const mapY = 130 * u
-        const mapH = Math.max(height * 0.68 - mapY, 590 * u)
-        drawRoute(ctx, data.pts, pad, mapY, cardW, mapH, accentColor, 3 * u)
+      // 1. Rute peta
+      if (hasMap) {
+        drawRoute(ctx, data.pts, blockX, mapY, blockW, mapH, accentColor, 3 * u)
       }
 
-      // 3. Overlay statistik: tanpa bingkai, menimpa peta bila perlu
-      ctx.save()
-      ctx.shadowColor = isDark ? 'rgba(15, 23, 42, 0.18)' : 'rgba(0, 0, 0, 0.15)'
-      ctx.shadowBlur = 24 * u
-      ctx.shadowOffsetY = 8 * u
-      roundRect(ctx, cardX, cardY, cardW, cardH, 22 * u)
-      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.75)' : 'rgba(14, 31, 38, 0.75)'
-      ctx.fill()
-      ctx.restore()
+      const top = cardY + 44 * su
+      const centerX = width / 2
+      const innerW = blockW - innerPad * 2
 
-      const x0 = cardX + innerPad
-      const top = cardY + 44 * u
-
-      // 4. Jarak utama
+      // 4. Jarak utama: label dan angka dipusatkan pada halaman
       ctx.textAlign = 'left'
       ctx.textBaseline = 'alphabetic'
-      ctx.fillStyle = mutedColor
-      ctx.font = `700 ${30 * u}px "Barlow", sans-serif`
-      ctx.fillText('JARAK', x0, top)
-
-      ctx.fillStyle = textColor
-      ctx.font = `900 ${102 * u}px "Barlow Semi Condensed", sans-serif`
-      ctx.fillText(data.distanceKm, x0, top + 84 * u)
-
+      ctx.font = `900 ${102 * su}px "Barlow Semi Condensed", sans-serif`
       const distW = ctx.measureText(data.distanceKm).width
-      ctx.fillStyle = accentColor
-      ctx.font = `700 ${44 * u}px "Barlow", sans-serif`
-      ctx.fillText('km', x0 + distW + 10 * u, top + 54 * u)
+      ctx.font = `700 ${44 * su}px "Barlow", sans-serif`
+      const kmW = ctx.measureText('km').width
+      const kmGap = 10 * su
+      const heroX = centerX - (distW + kmGap + kmW) / 2
 
-      // 5. Tiga statistik pendukung
-      const statY = top + 126 * u
-      const colW = (cardW - innerPad * 2) / 3
+      ctx.textAlign = 'center'
+      ctx.fillStyle = mutedColor
+      ctx.font = `700 ${30 * su}px "Barlow", sans-serif`
+      ctx.fillText('JARAK', centerX, top)
+
+      ctx.textAlign = 'left'
+      ctx.fillStyle = textColor
+      ctx.font = `900 ${102 * su}px "Barlow Semi Condensed", sans-serif`
+      ctx.fillText(data.distanceKm, heroX, top + 84 * su)
+
+      ctx.fillStyle = accentColor
+      ctx.font = `700 ${44 * su}px "Barlow", sans-serif`
+      ctx.fillText('km', heroX + distW + kmGap, top + 54 * su)
+
+      // 5. Tiga statistik pendukung: tiap kolom dipusatkan
+      const statY = top + 126 * su
+      const colW = innerW / 3
       const stats = [
         ['AVG PACE', `${data.paceStr} /km`],
         ['WAKTU', data.durationStr],
@@ -223,50 +220,54 @@ export const STICKER_TEMPLATES = [
       ]
 
       stats.forEach(([label, value], i) => {
-        const sx = x0 + colW * i
+        const cx = blockX + innerPad + colW * (i + 0.5)
+        ctx.textAlign = 'center'
         ctx.fillStyle = mutedColor
-        ctx.font = `600 ${24 * u}px "Barlow", sans-serif`
-        ctx.fillText(label, sx, statY)
+        ctx.font = `600 ${24 * su}px "Barlow", sans-serif`
+        ctx.fillText(label, cx, statY)
         ctx.fillStyle = textColor
-        ctx.font = `800 ${30 * u}px "Barlow Semi Condensed", sans-serif`
-        ctx.fillText(value, sx, statY + 36 * u)
+        ctx.font = `800 ${30 * su}px "Barlow Semi Condensed", sans-serif`
+        ctx.fillText(value, cx, statY + 36 * su)
       })
 
       // 6. Split (satu kolom, urut dari atas ke bawah)
       if (rows.length) {
-        const splitY = cardY + statsH + 6 * u
+        const splitY = cardY + statsH + 6 * su
+        ctx.textAlign = 'center'
         ctx.fillStyle = mutedColor
-        ctx.font = `700 ${28 * u}px "Barlow", sans-serif`
-        ctx.fillText(truncated ? `SPLIT TERBAIK (${MAX_SPLITS} TERCEPAT)` : 'SPLIT PER KILOMETER', x0, splitY + 16 * u)
+        ctx.font = `700 ${28 * su}px "Barlow", sans-serif`
+        ctx.fillText(truncated ? `SPLIT TERBAIK (${MAX_SPLITS} TERCEPAT)` : 'SPLIT PER KILOMETER', centerX, splitY + 16 * su)
 
         const fastestPace = Math.min(...rows.map((r) => r.pace))
-        const rowW = Math.min(cardW - innerPad * 2, 420 * u)
+        const rowX = blockX + innerPad
+        const rowW = innerW
 
         rows.forEach((s, i) => {
-          const cy = splitY + 46 * u + i * rowH + 20 * u
+          const cy = splitY + 46 * su + i * rowH + 20 * su
 
+          ctx.textAlign = 'left'
           ctx.fillStyle = mutedColor
-          ctx.font = `600 ${28 * u}px "Barlow", sans-serif`
-          ctx.fillText(`Km ${s.label}`, x0, cy)
+          ctx.font = `600 ${28 * su}px "Barlow", sans-serif`
+          ctx.fillText(`Km ${s.label}`, rowX, cy)
 
           ctx.textAlign = 'right'
           ctx.fillStyle = s.pace === fastestPace ? accentColor : textColor
-          ctx.font = `700 ${36 * u}px "Barlow Semi Condensed", sans-serif`
-          ctx.fillText(fmtPace(s.pace), x0 + rowW, cy)
-          ctx.textAlign = 'left'
+          ctx.font = `700 ${36 * su}px "Barlow Semi Condensed", sans-serif`
+          ctx.fillText(fmtPace(s.pace), rowX + rowW, cy)
 
           if (i < rows.length - 1) {
             ctx.strokeStyle = isDark ? 'rgba(15, 23, 42, 0.10)' : 'rgba(255, 255, 255, 0.10)'
             ctx.lineWidth = 1
             ctx.beginPath()
-            ctx.moveTo(x0, cy + 10 * u)
-            ctx.lineTo(x0 + rowW, cy + 10 * u)
+            ctx.moveTo(rowX, cy + 10 * su)
+            ctx.lineTo(rowX + rowW, cy + 10 * su)
             ctx.stroke()
           }
         })
       }
 
       // 7. Header brand
+      ctx.textAlign = 'left'
       ctx.fillStyle = textColor
       ctx.font = `800 ${30 * u}px "Barlow", sans-serif`
       ctx.fillText('Runner Pro', pad, 62 * u)
@@ -307,7 +308,7 @@ export async function renderSticker({
       drawDefaultBackground(ctx, width, height)
     }
   } else {
-    drawDefaultBackground(ctx, width, height)
+    drawDefaultBackground(ctx, width, height, options.colorTheme)
   }
 
   const data = extractStickerData(track)
@@ -345,11 +346,8 @@ function drawImageCover(ctx, img, x, y, w, h) {
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h)
 }
 
-function drawDefaultBackground(ctx, w, h) {
-  const grad = ctx.createLinearGradient(0, 0, w, h)
-  grad.addColorStop(0, '#0e1f26')
-  grad.addColorStop(0.6, '#17272e')
-  grad.addColorStop(1, '#0a323d')
-  ctx.fillStyle = grad
+// Latar default mengikuti warna teks: teks putih -> latar gelap, teks gelap -> latar terang.
+function drawDefaultBackground(ctx, w, h, colorTheme) {
+  ctx.fillStyle = colorTheme === 'dark' ? '#eef2f3' : '#0e1f26'
   ctx.fillRect(0, 0, w, h)
 }
